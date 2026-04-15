@@ -1,0 +1,44 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches:
+      - prod
+
+env:
+  IMAGE_NAME: webapp-ci-cd
+  IMAGE_TAG: 1.0.1
+  DOCKER_REGISTRY: ${{ secrets.DOCKERHUB_USERNAME }}
+
+jobs:
+
+  scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Scan before deploy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "$DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
+          severity: CRITICAL
+          exit-code: 1
+
+  deploy:
+    needs: scan
+    runs-on: runner-lab   # ou runner_prod selon ton exam
+
+    steps:
+      - name: Pull image
+        run: |
+          docker pull $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+
+      - name: Stop container
+        run: docker stop ci-app || true
+
+      - name: Remove container
+        run: docker rm ci-app || true
+
+      - name: Run container
+        run: |
+          docker run -d -p 80:80 --name ci-app \
+          $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
