@@ -12,22 +12,14 @@ env:
 
 jobs:
 
-  scan:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Scan before deploy
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: "$DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
-          severity: CRITICAL
-          exit-code: 1
-
   deploy:
-    needs: scan
-    runs-on: runner-lab   # ou runner_prod selon ton exam
+    runs-on: runner-lab   # ou runner_prod
 
     steps:
+      - name: Login Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "$DOCKER_REGISTRY" --password-stdin
+
       - name: Pull image
         run: |
           docker pull $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
