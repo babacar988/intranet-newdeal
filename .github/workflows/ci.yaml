@@ -3,7 +3,7 @@ name: CI-CD Docker Pipeline
 on:
   push:
     branches:
-      - prod
+      - dev 
 
 env:
   IMAGE_NAME: webapp-ci-cd
