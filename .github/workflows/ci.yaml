@@ -24,12 +24,12 @@ jobs:
 
       - name: Save image
         run: |
-          docker save $IMAGE_NAME:$IMAGE_TAG > image.tar
+          docker save $IMAGE_NAME:$IMAGE_TAG -o image.tar
 
-      - name: Upload artifact
+      - name: Upload image
         uses: actions/upload-artifact@v4
         with:
-          name: docker-image
+          name: image
           path: image.tar
 
 
@@ -41,16 +41,19 @@ jobs:
       - name: Download image
         uses: actions/download-artifact@v4
         with:
-          name: docker-image
+          name: image
 
       - name: Load image
         run: |
-          docker load < image.tar
+          docker load -i image.tar
+
+      - name: Verify image exists
+        run: docker images
 
       - name: Scan image
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: $IMAGE_NAME:$IMAGE_TAG
+          image-ref: examen-devops:1.0.1
           severity: CRITICAL,HIGH
           exit-code: 1
 
@@ -63,20 +66,20 @@ jobs:
       - name: Download image
         uses: actions/download-artifact@v4
         with:
-          name: docker-image
+          name: image
 
       - name: Load image
         run: |
-          docker load < image.tar
+          docker load -i image.tar
 
       - name: Login Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "$DOCKER_USER" --password-stdin
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Tag image
         run: |
-          docker tag $IMAGE_NAME:$IMAGE_TAG $DOCKER_USER/$IMAGE_NAME:$IMAGE_TAG
+          docker tag examen-devops:1.0.1 $DOCKER_USER/examen-devops:1.0.1
 
       - name: Push image
         run: |
-          docker push $DOCKER_USER/$IMAGE_NAME:$IMAGE_TAG
+          docker push $DOCKER_USER/examen-devops:1.0.1
