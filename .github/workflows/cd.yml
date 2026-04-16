@@ -6,47 +6,55 @@ on:
       - prod
 
 env:
-  IMAGE_NAME: webapp-ci-cd
+  IMAGE_NAME: examen-devops
   IMAGE_TAG: 1.0.1
-  DOCKER_REGISTRY: ${{ secrets.DOCKERHUB_USERNAME }}
 
 jobs:
 
+  # =========================
+  # JOB 1 : SCAN AVANT DEPLOY
+  # =========================
   scan:
     runs-on: ubuntu-latest
 
     steps:
       - name: Login Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "$DOCKER_REGISTRY" --password-stdin
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-      - name: Scan image
+      - name: Scan image from Docker Hub
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: "$DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/examen-devops:1.0.1
           severity: CRITICAL
           exit-code: 1
 
+
+  # =========================
+  # JOB 2 : DEPLOY
+  # =========================
   deploy:
     needs: scan
-    runs-on: runner_prod
+    runs-on: runner_prod   # ou runner-lab selon ton setup
 
     steps:
       - name: Login Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "$DOCKER_REGISTRY" --password-stdin
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Pull image
         run: |
-          docker pull $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/examen-devops:1.0.1
 
       - name: Stop container
-        run: docker stop ci-app || true
+        run: |
+          docker stop ci-app || true
 
       - name: Remove container
-        run: docker rm ci-app || true
+        run: |
+          docker rm ci-app || true
 
       - name: Run container
         run: |
           docker run -d -p 80:80 --name ci-app \
-          $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+          ${{ secrets.DOCKERHUB_USERNAME }}/examen-devops:1.0.1
